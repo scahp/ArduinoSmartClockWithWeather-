@@ -174,29 +174,39 @@ int weatherIconIndex = -1;
 int minDegree = 0;
 int maxDegree = 0;
 bool isNight = false;
+int deepNightStart = 22;
+int deepNightEnd = 6;
 void UpdateNight()
 {
   Time time = rtc.getTime();
   isNight = ((6 > time.hour) || (18 < time.hour));
-  isDeepNight = (usingDeepNightMode && ((6 > time.hour) || (22 < time.hour)));
+  isDeepNight = (usingDeepNightMode && ((deepNightEnd > time.hour) || (deepNightStart < time.hour)));
 }
 ///////////////////////////////////////////////////////////////////
 
 void DrawImage(int x, int y, int width, int height, char* imageArray)
 {
   unsigned int count = 0;
-  for(int i=0;i<height;++i)
+  char first = 0;
+  char second = 0;
+  byte b = 0;
+  byte g = 0;
+  byte r = 0;
+  byte a = 0;
+  float alpha = 0.0f;
+  int i, j;
+  for(i=0;i<height;++i)
   {
-    for(int j=0;j<width;++j)
+    for(j=0;j<width;++j)
     {
-      char first = pgm_read_byte(&imageArray[count]);
-      char second = pgm_read_byte(&imageArray[count+1]);
+      first = pgm_read_byte(&imageArray[count]);
+      second = pgm_read_byte(&imageArray[count+1]);
 
-      byte b = (first >> 3) & 0x07;
-      byte g = first & 0x07;
-      byte r = (second >> 3) & 0x07;
-      byte a = second & 0x07;
-      float alpha = a / 7.0f;
+      b = (first >> 3) & 0x07;
+      g = first & 0x07;
+      r = (second >> 3) & 0x07;
+      a = second & 0x07;
+      alpha = a / 7.0f;
 
       r = alpha * r;
       g = alpha * g;
@@ -495,6 +505,8 @@ bool FindWIFISerialToSerial(unsigned int period, const char* searchData)
 
 bool InitWIFI()
 {
+  WIFI.end();
+  
   WIFI.begin(115200);                 // 원래 와이파이 모듈의 기본 보드레이트인 115200을 설정해줌 (Set basic wifi module's baud rate 115200)
   WIFI.setTimeout(5000);
 
@@ -678,9 +690,9 @@ void ReceiveResponseHttp()
           {
             if (8 <= data.length())
             {
-              char szYear[5] = {0,};
-              char szMonth[3] = {0,};
-              char szDay[3] = {0,};
+              char szYear[5] = {0,0,0,0,0,};
+              char szMonth[3] = {0,0,0,};
+              char szDay[3] = {0,0,0,};
               strncpy(szYear, &data[0], 4);
               strncpy(szMonth, &data[4], 2);
               strncpy(szDay, &data[6], 2);
@@ -692,9 +704,9 @@ void ReceiveResponseHttp()
           {
             if (6 <= data.length())
             {
-              char szHour[3] = {0,};
-              char szMin[3] = {0,};
-              char szSec[3] = {0,};
+              char szHour[3] = {0,0,0,};
+              char szMin[3] = {0,0,0,};
+              char szSec[3] = {0,0,0,};
               strncpy(szHour, &data[0], 2);
               strncpy(szMin, &data[2], 2);
               strncpy(szSec, &data[4], 2);
@@ -717,9 +729,16 @@ void ReceiveResponseHttp()
           }
           case 4:   // DeepNight Mode
           {
-            if (1 == data.length())
+            if (4 <= data.length())
             {
-              usingDeepNightMode = ('0' != data[0]);
+              char startTime[3] = {0,0,0,};
+              char endTime[3] = {0,0,0,};
+              strncpy(startTime, &data[0], 2);
+              strncpy(endTime, &data[2], 2);
+              deepNightStart = atoi(startTime);
+              deepNightEnd = atoi(endTime);
+
+              usingDeepNightMode = (deepNightStart != deepNightEnd);
             }
             else
             {
