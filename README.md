@@ -97,5 +97,5 @@ Board
 Modules
 - Led Matrix 64 x 32 (SMD HD P5 Inddor)
 - Clock Module (DS1302)
-- ESP8266 WIFI Module
+- ESP8266 WIFI Module (Adjusting Baud rate with 9600 serial command : AT+UART_DEF=9600,8,1,0,0)
 - PHP Webserver('SK Planet' Weather Open API)
